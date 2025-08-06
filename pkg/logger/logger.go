@@ -9,6 +9,8 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+var Logger *zap.Logger
+
 func InitLogger(logDir, appName, appVersion string) *zap.Logger {
 	// Create log folder per app name
 	if _, err := os.Stat(logDir); os.IsNotExist(err) {
@@ -48,8 +50,11 @@ func InitLogger(logDir, appName, appVersion string) *zap.Logger {
 	baseLogger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
 
 	// Add app name/version to every log entry
-	return baseLogger.With(
+
+	Logger = baseLogger.With(
 		zap.String("app_name", appName),
 		zap.String("app_version", appVersion),
 	)
+
+	return Logger
 }

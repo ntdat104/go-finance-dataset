@@ -39,9 +39,8 @@ func main() {
 	router.Use(middleware.CorsMiddleware())
 	router.Use(middleware.ZapLoggerWithBody(logg))
 
-	baseService := service.NewBaseService()
 	systemService := service.NewSystemService()
-	interfaces.NewSystemController(router, baseService, systemService)
+	interfaces.NewSystemController(router, systemService)
 
 	// Run server
 	port := strconv.Itoa(cfg.HTTP.Port)

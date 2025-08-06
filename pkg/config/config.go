@@ -7,8 +7,10 @@ import (
 )
 
 type App struct {
-	Name    string `mapstructure:"name"`
-	Version string `mapstructure:"version"`
+	Name       string `mapstructure:"name"`
+	Version    string `mapstructure:"version"`
+	PrivateKey string `mapstructure:"private_key"`
+	PublicKey  string `mapstructure:"public_key"`
 }
 
 type HTTP struct {
@@ -20,6 +22,9 @@ type Config struct {
 	App  App  `mapstructure:"app"`
 	HTTP HTTP `mapstructure:"http"`
 }
+
+// Global config variable
+var Cfg *Config
 
 func NewConfig(path string) *Config {
 	viper.SetConfigFile(path) // Accept full path (e.g., ./configs/config.yaml)
@@ -37,5 +42,7 @@ func NewConfig(path string) *Config {
 		log.Fatalf("viper.Unmarshal(&cfg) has error: %v", err)
 	}
 
-	return &cfg
+	Cfg = &cfg
+
+	return Cfg
 }
