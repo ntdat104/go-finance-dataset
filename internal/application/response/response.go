@@ -29,7 +29,7 @@ type Response struct {
 }
 
 func getMessageID(ctx *gin.Context) string {
-	messageID := ctx.GetHeader(constants.MessageID)
+	messageID := ctx.GetHeader(constants.X_Message_ID)
 	if messageID == "" {
 		messageID = uuid.NewShortUUID()
 	}

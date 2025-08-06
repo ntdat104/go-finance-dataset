@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/ntdat104/go-finance-dataset/internal/application/constants"
 	"go.uber.org/zap"
 )
 
@@ -86,12 +87,12 @@ func ZapLoggerWithBody(logger *zap.Logger) gin.HandlerFunc {
 		}
 
 		// Add access_token if Authorization header is present
-		if token := c.GetHeader("Authorization"); token != "" {
+		if token := c.GetHeader(constants.Authorization); token != "" {
 			fields = append(fields, zap.String("access_token", token))
 		}
 
 		// Add signature if Signature header is present
-		if signature := c.GetHeader("Signature"); signature != "" {
+		if signature := c.GetHeader(constants.Signature); signature != "" {
 			fields = append(fields, zap.String("signature", signature))
 		}
 

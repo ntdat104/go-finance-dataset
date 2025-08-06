@@ -1,8 +1,14 @@
 package main
 
 import (
+	"context"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/ntdat104/go-finance-dataset/internal/application/service"
@@ -12,20 +18,6 @@ import (
 	"github.com/ntdat104/go-finance-dataset/pkg/middleware"
 )
 
-type Meta struct {
-	MessageID string `json:"message_id"`
-	Timestamp int64  `json:"timestamp"`
-	Datetime  string `json:"datetime"`
-	Code      int    `json:"code"`
-	Message   string `json:"message"`
-	Token     string `json:"token,omitempty"`
-}
-
-type Response struct {
-	Meta Meta `json:"meta"`
-	Data any  `json:"data,omitempty"`
-}
-
 func main() {
 	// Initialize cfg
 	cfg := config.NewConfig("./config/dev.yml")
@@ -33,8 +25,8 @@ func main() {
 	logg := logger.InitLogger("./log", cfg.App.Name, cfg.App.Version)
 	defer logg.Sync()
 
-	gin.SetMode(gin.ReleaseMode) // Set Gin to release mode for production
-	router := gin.New()          // Clean router (no default logger)
+	gin.SetMode(gin.ReleaseMode)
+	router := gin.New()
 	router.Use(gin.Recovery())
 	router.Use(middleware.CorsMiddleware())
 	router.Use(middleware.ZapLoggerWithBody(logg))
@@ -42,10 +34,33 @@ func main() {
 	systemService := service.NewSystemService()
 	interfaces.NewSystemController(router, systemService)
 
-	// Run server
 	port := strconv.Itoa(cfg.HTTP.Port)
-	log.Printf("%v started on http://%v:%v", cfg.App.Name, cfg.HTTP.Host, port)
-	if err := router.Run(":" + port); err != nil {
-		log.Fatalf(cfg.App.Name+" failed to start: %v", err)
+	addr := ":" + port
+
+	srv := &http.Server{
+		Addr:    addr,
+		Handler: router,
 	}
+
+	// Run server in a goroutine
+	go func() {
+		log.Printf("%v started on http://%v:%v", cfg.App.Name, cfg.HTTP.Host, port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf(cfg.App.Name+" failed to start: %v", err)
+		}
+	}()
+
+	// Graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("Server forced to shutdown: %v", err)
+	}
+
+	log.Println("Server exiting")
 }

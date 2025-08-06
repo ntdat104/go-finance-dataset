@@ -1,7 +1,7 @@
 package constants
 
 const (
-	MessageID = "message_id"
-	Signature = "signature"
-	Timestamp = "timestamp"
+	X_Message_ID  = "X-Message-ID"
+	Signature     = "Signature"
+	Authorization = "Authorization"
 )
