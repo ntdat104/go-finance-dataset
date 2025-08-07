@@ -1,25 +1,35 @@
 package logger
 
 import (
+	"log"
 	"os"
-	"time"
+	"sync/atomic"
 
 	"github.com/natefinch/lumberjack"
+	"github.com/ntdat104/go-finance-dataset/pkg/datetime"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
-var Logger *zap.Logger
+var globalLogger atomic.Value
 
-func InitLogger(logDir, appName, appVersion string) *zap.Logger {
+func InitDefault() {
+	logger, err := zap.NewProduction()
+	if err != nil {
+		log.Fatalf("zap.NewProduction has error: %v", err)
+	}
+	setGlobalLogger(logger)
+}
+
+func InitProduction(filePath string) {
 	// Create log folder per app name
-	if _, err := os.Stat(logDir); os.IsNotExist(err) {
-		os.MkdirAll(logDir, 0755)
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		os.MkdirAll(filePath, 0755)
 	}
 
 	// Daily log file inside app-specific folder
-	today := time.Now().Format("2006-01-02")
-	logFile := logDir + "/" + today + ".log"
+	today := datetime.ConvertCurrentLocalTimeToString(datetime.YYYY_MM_DD)
+	logFile := filePath + "/" + today + ".log"
 
 	// File writer with rotation
 	fileWriter := zapcore.AddSync(&lumberjack.Logger{
@@ -47,14 +57,44 @@ func InitLogger(logDir, appName, appVersion string) *zap.Logger {
 		zapcore.NewCore(jsonEncoder, consoleWriter, zapcore.DebugLevel),
 	)
 
-	baseLogger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
+	logger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
+	setGlobalLogger(logger)
+}
 
-	// Add app name/version to every log entry
+// Sync flushs any buffered log entries. It should be call before program exit.
+func Sync() error {
+	return getGlobalLogger().Sync()
+}
 
-	Logger = baseLogger.With(
-		zap.String("app_name", appName),
-		zap.String("app_version", appVersion),
-	)
+// Debug logs a message at Debug level.
+func Debug(msg string, fields ...zap.Field) {
+	getGlobalLogger().Debug(msg, fields...)
+}
 
-	return Logger
+// Info logs a message at Info level.
+func Info(msg string, fields ...zap.Field) {
+	getGlobalLogger().Info(msg, fields...)
+}
+
+// Error logs a message at Error level.
+func Error(msg string, fields ...zap.Field) {
+	getGlobalLogger().Error(msg, fields...)
+}
+
+// Warn logs a message at Warn level.
+func Warn(msg string, fields ...zap.Field) {
+	getGlobalLogger().Warn(msg, fields...)
+}
+
+// Fatal logs a message at Fatal level.
+func Fatal(msg string, fields ...zap.Field) {
+	getGlobalLogger().Fatal(msg, fields...)
+}
+
+func setGlobalLogger(logger *zap.Logger) {
+	globalLogger.Store(logger)
+}
+
+func getGlobalLogger() *zap.Logger {
+	return globalLogger.Load().(*zap.Logger)
 }

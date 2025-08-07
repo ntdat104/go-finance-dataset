@@ -2,6 +2,7 @@ package config
 
 import (
 	"log"
+	"sync/atomic"
 
 	"github.com/spf13/viper"
 )
@@ -24,9 +25,9 @@ type Config struct {
 }
 
 // Global config variable
-var Cfg *Config
+var globalConfig atomic.Value
 
-func NewConfig(path string) *Config {
+func InitConfig(path string) {
 	viper.SetConfigFile(path) // Accept full path (e.g., ./configs/config.yaml)
 
 	// Read config file
@@ -37,12 +38,17 @@ func NewConfig(path string) *Config {
 	// Optionally override with env variables
 	viper.AutomaticEnv()
 
-	var cfg Config
+	var cfg *Config
 	if err := viper.Unmarshal(&cfg); err != nil {
 		log.Fatalf("viper.Unmarshal(&cfg) has error: %v", err)
 	}
+	setGlobalConfig(cfg)
+}
 
-	Cfg = &cfg
+func setGlobalConfig(cfg *Config) {
+	globalConfig.Store(cfg)
+}
 
-	return Cfg
+func GetGlobalConfig() *Config {
+	return globalConfig.Load().(*Config)
 }

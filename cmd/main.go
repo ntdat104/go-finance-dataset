@@ -19,32 +19,31 @@ import (
 )
 
 func main() {
-	// Initialize cfg
-	cfg := config.NewConfig("./config/dev.yml")
-
-	logg := logger.InitLogger("./log", cfg.App.Name, cfg.App.Version)
-	defer logg.Sync()
+	config.InitConfig("./config/dev.yml")
+	logger.InitProduction("./log")
+	defer logger.Sync()
 
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
 	router.Use(gin.Recovery())
 	router.Use(middleware.CorsMiddleware())
-	router.Use(middleware.ZapLoggerWithBody(logg))
+	router.Use(middleware.ZapLoggerWithBody())
 
-	systemService := service.NewSystemService()
-	interfaces.NewSystemController(router, systemService)
+	systemSvc := service.NewSystemSvc()
+	interfaces.NewSystemHandler(router, systemSvc)
 
-	port := strconv.Itoa(cfg.HTTP.Port)
-	addr := ":" + port
+	binanceSvc := service.NewBinanceSvc()
+	interfaces.NewBinanceHandler(router, binanceSvc)
 
+	cfg := config.GetGlobalConfig()
 	srv := &http.Server{
-		Addr:    addr,
+		Addr:    ":" + strconv.Itoa(cfg.HTTP.Port),
 		Handler: router,
 	}
 
 	// Run server in a goroutine
 	go func() {
-		log.Printf("%v started on http://%v:%v", cfg.App.Name, cfg.HTTP.Host, port)
+		log.Printf("%v started on http://%v:%v", cfg.App.Name, cfg.HTTP.Host, strconv.Itoa(cfg.HTTP.Port))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf(cfg.App.Name+" failed to start: %v", err)
 		}
@@ -55,12 +54,10 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	log.Println("Shutting down server...")
-
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Fatalf("Server forced to shutdown: %v", err)
 	}
-
 	log.Println("Server exiting")
 }

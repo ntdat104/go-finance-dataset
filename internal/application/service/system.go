@@ -5,15 +5,18 @@ import (
 	"github.com/ntdat104/go-finance-dataset/pkg/datetime"
 )
 
-type SystemService struct {
+type SystemSvc interface {
+	GetTime() *dto.SystemTime
 }
 
-func NewSystemService() *SystemService {
-	return &SystemService{}
+type systemSvc struct{}
+
+func NewSystemSvc() SystemSvc {
+	return &systemSvc{}
 }
 
-func (s *SystemService) GetTime() dto.SystemTime {
-	return dto.SystemTime{
+func (s *systemSvc) GetTime() *dto.SystemTime {
+	return &dto.SystemTime{
 		ServerTime: datetime.GetCurrentMiliseconds(),
 	}
 }

@@ -51,20 +51,20 @@ func buildResponse(ctx *gin.Context, code int, obj any) {
 	}
 
 	// Set custom response header
-	privateKey, err := base64.StdEncoding.DecodeString(config.Cfg.App.PrivateKey)
+	privateKey, err := base64.StdEncoding.DecodeString(config.GetGlobalConfig().App.PrivateKey)
 	if err != nil {
-		logger.Logger.Error("base64.StdEncoding.DecodeString has error: " + err.Error())
+		logger.Error("base64.StdEncoding.DecodeString has error: " + err.Error())
 	}
 	responseStr, err := json.ToJSON(response)
 	if err != nil {
-		logger.Logger.Error("json.ToJSON has error: " + err.Error())
+		logger.Error("json.ToJSON has error: " + err.Error())
 	}
 	signature, err := rsa.SignMessage(string(privateKey), responseStr, "SHA256")
 	if err != nil {
-		logger.Logger.Error("rsa.SignMessage has error: " + err.Error())
+		logger.Error("rsa.SignMessage has error: " + err.Error())
 	}
-	logger.Logger.Debug("Signature: " + signature)
-	logger.Logger.Warn("response: " + responseStr)
+	logger.Debug("Signature: " + signature)
+	logger.Warn("response: " + responseStr)
 	ctx.Header(constants.Signature, signature)
 
 	ctx.JSON(code, response)
