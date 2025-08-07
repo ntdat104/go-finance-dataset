@@ -66,6 +66,7 @@ func buildResponse(ctx *gin.Context, code int, obj any) {
 	logger.Debug("Signature: " + signature)
 	logger.Warn("response: " + responseStr)
 	ctx.Header(constants.Signature, signature)
+	ctx.Header(constants.X_Message_ID, getMessageID(ctx))
 
 	ctx.JSON(code, response)
 }
