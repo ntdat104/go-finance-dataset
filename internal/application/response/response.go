@@ -1,10 +1,9 @@
 package response
 
 import (
-	"encoding/base64"
-
 	"github.com/gin-gonic/gin"
 	"github.com/ntdat104/go-finance-dataset/internal/application/constants"
+	"github.com/ntdat104/go-finance-dataset/pkg/base64"
 	"github.com/ntdat104/go-finance-dataset/pkg/config"
 	"github.com/ntdat104/go-finance-dataset/pkg/datetime"
 	"github.com/ntdat104/go-finance-dataset/pkg/http"
@@ -51,7 +50,7 @@ func buildResponse(ctx *gin.Context, code int, obj any) {
 	}
 
 	// Set custom response header
-	privateKey, err := base64.StdEncoding.DecodeString(config.GetGlobalConfig().App.PrivateKey)
+	privateKey, err := base64.DecodeToString(config.GetGlobalConfig().App.PrivateKey)
 	if err != nil {
 		logger.Error("base64.StdEncoding.DecodeString has error: " + err.Error())
 	}
@@ -59,7 +58,7 @@ func buildResponse(ctx *gin.Context, code int, obj any) {
 	if err != nil {
 		logger.Error("json.ToJSON has error: " + err.Error())
 	}
-	signature, err := rsa.SignMessage(string(privateKey), responseStr, "SHA256")
+	signature, err := rsa.SignMessage(privateKey, responseStr, "SHA256")
 	if err != nil {
 		logger.Error("rsa.SignMessage has error: " + err.Error())
 	}
